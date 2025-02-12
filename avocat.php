@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->close();
 
     // Trimitere la OpenAI GPT
-    $openai_api_key = "";
+    $openai_api_key = ""; // Schimbă cu cheia ta reală
     $ch = curl_init("https://api.openai.com/v1/chat/completions");
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -44,13 +44,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ]);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-        "model" => "gpt-4",
-        "messages" => [["role" => "system", "content" => "Ești un avocat virtual. Răspunde clar și concis."],
-                        ["role" => "user", "content" => $history]]
+        "model" => "gpt-4o",
+        "messages" => [
+            ["role" => "system", "content" => "Ești un avocat virtual. Răspunde clar și concis."],
+            ["role" => "user", "content" => $history]
+        ]
     ]));
+
     $response = json_decode(curl_exec($ch), true);
+    if (!$response) {
+        error_log("Eroare cURL: " . curl_error($ch)); // Logare eroare cURL
+    } else {
+        error_log("Răspuns OpenAI: " . json_encode($response)); // Logare răspuns OpenAI
+    }
     curl_close($ch);
 
+    // Verificare erori din răspuns
+    if (isset($response['error'])) {
+        error_log("Eroare OpenAI: " . $response['error']['message']);
+    }
+
+    // Răspuns din OpenAI
     $reply = $response['choices'][0]['message']['content'] ?? "Nu am un răspuns momentan.";
 
     // Salvare răspuns AI
@@ -71,6 +85,7 @@ $conn->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chatbot Juridic AI</title>
     <style>
+        /* Stilizare pentru interfață */
         body {
             font-family: Arial, sans-serif;
             background-color: #f7f7f7;
@@ -130,7 +145,7 @@ $conn->close();
 <body>
     <div id="chat-container">
         <div id="chat-log">
-            <!-- Aici se vor afișa mesajele -->
+            <!-- Afișare mesaje din DB -->
             <?php
             $conn = new mysqli($servername, $username, $password, $dbname);
             $sql = "SELECT message, role FROM messages WHERE user_phone='user_web' ORDER BY id ASC";
